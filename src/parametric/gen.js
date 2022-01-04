@@ -486,6 +486,7 @@ class Tree {
       in_pruning_envelope,
       leaf_count,
       leaf_num_error,
+      leaves_on_seg,
       max_points_per_seg,
       new_point,
       points_per_seg,
@@ -660,9 +661,6 @@ class Tree {
     }
 
     for (var seg_ind = start; seg_ind < curve_res + 1; seg_ind += 1) {
-      if (turtle.dir.length() === 0) {
-        debugger;
-      }
       remaining_segs = curve_res + 1 - seg_ind;
 
       // set up next bezier point
@@ -721,7 +719,6 @@ class Tree {
 
         new_point.co = turtle.pos.clone();
         if (cloned_turtle && seg_ind === start) {
-          debugger;
           new_point.handle_left = turtle.pos
             .clone()
             .addScaledVector(
@@ -844,9 +841,6 @@ class Tree {
         random_setstate(r_state);
 
         if (this.param.curve_v[depth] >= 0) {
-          if (stem.name === "trunk stem nr 0") {
-            debugger;
-          }
           if (num_of_splits > 0) {
             is_base_split =
               this.param.base_splits > 0 &&
@@ -903,9 +897,6 @@ class Tree {
               }
             }
           } else {
-            if (stem.name === "trunk stem nr 0") {
-              debugger;
-            }
 
             const leftAng =
               (random_uniform(-1, 1) * this.param.bend_v[depth]) / curve_res;
@@ -1191,9 +1182,6 @@ class Tree {
     prev_rotation_angle,
     is_leaves = false
   ) {
-    if (turtle.dir.length() === 0) {
-      //debugger;
-    }
     /* Make the required branches for a segment of the stem */
     var base_length,
       branch_dist,
@@ -1343,9 +1331,6 @@ class Tree {
         this.make_stem(dir_tur, new_stem, 0, 0, 1, 1, pos_tur);
       });
     }
-    if (turtle.dir.length() === 0) {
-      //debugger;
-    }
   }
   make_leaves(turtle, stem, seg_ind, leaves_on_seg, prev_rotation_angle) {
     /* Make the required leaves for a segment of the stem */
@@ -1424,9 +1409,6 @@ class Tree {
     );
     d_angle = this.calc_down_angle(stem, stem_offset);
     branch_dir_turtle.pitch_down(d_angle);
-    if (turtle.dir.length() === 0) {
-      debugger;
-    }
     return [branch_pos_turtle, branch_dir_turtle, radius_limit, stem_offset];
   }
   calc_stem_length(stem) {
