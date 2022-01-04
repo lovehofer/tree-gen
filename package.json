@@ -1,0 +1,40 @@
+{
+  "name": "tree-gen",
+  "version": "1.0.0",
+  "description": "Blender plugin produced as part of my undergraduate dissertation: [Procedural generation of tree models for use in computer graphics](https://chewitt.me/Papers/CTH-Dissertation-2017.pdf).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "build:prod": "webpack --env.prod",
+    "start": "webpack-dev-server --open"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lovehofer/tree-gen.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lovehofer/tree-gen/issues"
+  },
+  "homepage": "https://github.com/lovehofer/tree-gen#readme",
+  "devDependencies": {
+    "copy-webpack-plugin": "^10.2.0",
+    "html-webpack-plugin": "^5.5.0",
+    "prettier": "2.5.1",
+    "webpack": "^5.65.0",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.7.2"
+  },
+  "dependencies": {
+    "@babel/core": "^7.16.7",
+    "@babel/plugin-transform-runtime": "^7.16.7",
+    "@babel/preset-env": "^7.16.7",
+    "babel-loader": "^8.2.3",
+    "glslify-loader": "^2.0.0",
+    "python-js": "^0.9.8",
+    "raw-loader": "^4.0.2",
+    "three": "^0.136.0"
+  }
+}
