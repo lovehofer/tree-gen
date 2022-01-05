@@ -365,10 +365,7 @@ class Tree {
       if (counter % 500 === 0) {
         //windman.progress_update((counter / 100));
         update_log(
-          "\r-> {} leaves made, {} blossoms made".format(
-            leaf_index,
-            blossom_index
-          )
+          `\r-> ${leaf_index} leaves made, ${blossom_index} blossoms made`
         );
       }
       if (
@@ -380,8 +377,8 @@ class Tree {
           base_blossom_shape,
           blossom_index
         );
-        blossom_verts.extend(verts);
-        blossom_faces.extend(faces);
+        blossom_verts.push(...verts);
+        blossom_faces.push(...faces);
         blossom_index += 1;
       } else {
         [verts, faces] = leaf.get_mesh(
@@ -389,8 +386,8 @@ class Tree {
           base_leaf_shape,
           leaf_index
         );
-        leaf_verts.extend(verts);
-        leaf_faces.extend(faces);
+        leaf_verts.push(...verts);
+        leaf_faces.push(...faces);
         leaf_index += 1;
       }
       counter += 1;
@@ -399,8 +396,14 @@ class Tree {
       //leaves = new bpy.data.meshes.COMPAT_new("leaves");
       //leaves_obj = new bpy.data.objects.COMPAT_new("Leaves", leaves);
       //bpy.context.collection.objects.link(leaves_obj);
-      leaves_obj.parent = this.tree_obj;
-      leaves.from_pydata(leaf_verts, [], leaf_faces);
+      //leaves_obj.parent = this.tree_obj;
+
+      
+      this.leafMeshes = {
+        verts: leaf_verts,
+        faces: leaf_faces
+      }
+      /*console.warn("Skipping leaf UV stuff");
       leaf_uv = base_leaf_shape[2];
       if (leaf_uv) {
         new leaves.uv_layers.COMPAT_new({ name: "leavesUV" });
@@ -424,7 +427,7 @@ class Tree {
             vert_ind += 1;
           }
         }
-      }
+      }*/
     }
     if (blossom_index > 0) {
       //blossom = new bpy.data.meshes.COMPAT_new("blossom");
@@ -435,8 +438,7 @@ class Tree {
     }
     l_time = time.time() - start_time;
     update_log(
-      "\nMade %i leaves and %i blossoms in %f seconds\n" %
-        [leaf_index, blossom_index, l_time]
+      `\nMade ${leaf_index} leaves and ${blossom_index} blossoms in ${l_time} seconds\n`
     );
     //windman.progress_end();
   }
@@ -448,8 +450,8 @@ class Tree {
       base_leaf_shape,
       index
     );
-    verts_array.extend(verts);
-    faces_array.extend(faces);
+    verts_array.push(...verts);
+    faces_array.push(...faces);
   }
   make_stem(
     turtle,
@@ -897,7 +899,6 @@ class Tree {
               }
             }
           } else {
-
             const leftAng =
               (random_uniform(-1, 1) * this.param.bend_v[depth]) / curve_res;
             turtle.turn_left(leftAng);

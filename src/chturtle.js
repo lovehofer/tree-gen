@@ -53,6 +53,15 @@ export class Vector extends Vector3 {
       atan2(sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2)), this.z)
     );
   }
+
+  // Blender vector methods
+  to_track_quat(track, up) {
+    if (track !== "Z") throw "Expected track to be Z unit vector.";
+    return new Quaternion().setFromUnitVectors(
+      this.clone().normalize(),
+      new Vector3(0, 0, 1)
+    );
+  }
 }
 export class CHTurtle {
   /*3D turtle implementation for use in both L-Systems and Parametric tree

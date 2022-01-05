@@ -1,6 +1,5 @@
 /*  QUAKING ASPEN  */
-var params;
-params = {
+export default {
   shape: 7,
   g_scale: 13,
   g_scale_v: 3,
@@ -33,4 +32,3 @@ params = {
   leaf_bend: 0.6,
 };
 
-//# sourceMappingURL=quaking_aspen.js.map
