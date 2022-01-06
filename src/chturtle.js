@@ -58,8 +58,9 @@ export class Vector extends Vector3 {
   to_track_quat(track, up) {
     if (track !== "Z") throw "Expected track to be Z unit vector.";
     return new Quaternion().setFromUnitVectors(
-      this.clone().normalize(),
-      new Vector3(0, 0, 1)
+      new Vector3(0, 0, 1).normalize(),
+      this.clone().normalize()
+      
     );
   }
 }

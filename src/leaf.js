@@ -41,6 +41,7 @@ export class Leaf {
     });
     return [verts, faces, u_v];
   }
+  
   get_mesh(bend, base_shape, index) {
     /* produce leaf mesh at position of this leaf given base mesh as input */
     var bend_trf_1,
@@ -52,29 +53,42 @@ export class Leaf {
       spin_ang_quat,
       trf,
       vertices;
+
+    // calculate angles to transform mesh to align with desired direction
     trf = this.direction.to_track_quat("Z", "Y");
     right_t = this.right.rotated(trf.clone().invert());
     spin_ang = Math.PI - right_t.angleTo(new Vector([1, 0, 0]));
     spin_ang_quat = angleQuart(new Vector(0, 0, 1), spin_ang);
+
+    // calculate bend transform if needed
     if (bend > 0) {
       [bend_trf_1, bend_trf_2] = this.calc_bend_trf(bend);
     } else {
       bend_trf_1 = null;
     }
+
+
     vertices = [];
     for (
       var vertex, _pj_c = 0, _pj_a = base_shape[0], _pj_b = _pj_a.length;
       _pj_c < _pj_b;
       _pj_c += 1
     ) {
+      // rotate to correct direction
       vertex = _pj_a[_pj_c];
       n_vertex = vertex.clone();
       n_vertex.applyQuaternion(spin_ang_quat);
       n_vertex.applyQuaternion(trf);
+
+      // apply bend if needed
       if (bend > 0) {
         n_vertex.applyQuaternion(bend_trf_1);
       }
+
+      // move to right position
       n_vertex.add(this.position);
+
+      // add to vertex array
       vertices.push(n_vertex);
     }
     index *= vertices.length;

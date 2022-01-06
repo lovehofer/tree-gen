@@ -6,7 +6,9 @@ import { Float32BufferAttribute } from "three";
 import { Vector3 } from "three";
 import { CatmullRomCurveRadius3 } from "./CatmulRomCurve";
 import { TubeGeometry } from "./TubeGeometry";
-import { FlyControls } from 'three/examples/jsm/controls/FlyControls';
+import { FlyControls } from "three/examples/jsm/controls/FlyControls";
+import { MeshLambertMaterial } from "three";
+import { PointLight } from "three";
 
 let camera, scene, renderer, controls;
 let geometry, material, mesh;
@@ -31,7 +33,7 @@ export function init(tree) {
 
   // render branches
   tree.branch_curves.forEach((branchCurve, branchIdx) => {
-    if (branchIdx > 1) return;
+    //if (branchIdx > 1) return;
     branchCurve.splines.children.forEach((spline, splineIdx) => {
       //if (splineIdx > 1) return;
       const points = [];
@@ -54,13 +56,7 @@ export function init(tree) {
   // render leaves
   const leafGeometry = new BufferGeometry();
   const leafIndices = [];
-  // Fan triangulation is supposedly supposed to be like this:
-  /*
-    Given a quad A B C D we can split it into A B C, A C D or A B D, D B C.
-    Compare the length of A-C and B-D and use the shorter for the splitting edge.
-    In other words use A B C, A C D if A-C is shorter and A B D, D B C otherwise.
-  */
-  // this should be moved to the base shape place as it will be much much faster
+
   tree.leafMeshes.faces.forEach((faceIndices) => {
     leafIndices.push(faceIndices[0], faceIndices[1], faceIndices[2]);
   });
@@ -68,22 +64,35 @@ export function init(tree) {
   const leafVertices = [];
   tree.leafMeshes.verts.forEach((v) => {
     //points[i] = new THREE.Vector3(x, z, -y);
-    leafVertices.push(v.x, v.z, -v.z);    
+    leafVertices.push(v.x, v.z, -v.y);
   });
   leafGeometry.setIndex(leafIndices);
   leafGeometry.setAttribute(
     "position",
     new Float32BufferAttribute(leafVertices, 3)
   );
-  leafGeometry.computeBoundingBox();
-  const leafMaterial = new MeshBasicMaterial({ color: 0x00ff00 });
+  
+  
+  leafGeometry.computeVertexNormals();
+  //leafGeometry.computeTangents();
+
+  /*const leafMaterial = new MeshBasicMaterial({
+    color: 0x2a5709,
+    side: THREE.DoubleSide,
+  });*/
+  var leafMaterial = new MeshLambertMaterial({
+    color: 0x2a5709,
+    side: THREE.DoubleSide,
+  });
   const leafMesh = new Mesh(leafGeometry, leafMaterial);
   scene.add(leafMesh);
+
+  scene.add(new THREE.AmbientLight(0xbbbbbb,.6));
+  scene.add(new THREE.DirectionalLight(0xffffff, 0.6));
 
   // STATS
   //stats = new Stats();
   //document.body.appendChild( stats.dom );
-
 
   renderer = new WebGLRenderer({ antialias: true });
   renderer.setClearColor(0xcccccc, 1);
@@ -91,9 +100,8 @@ export function init(tree) {
   renderer.setAnimationLoop(animation);
   document.body.appendChild(renderer.domElement);
 
-  
   // Fly controlls
-  controls = new FlyControls( camera, renderer.domElement );
+  controls = new FlyControls(camera, renderer.domElement);
   controls.movementSpeed = 10;
   controls.rollSpeed = Math.PI / 5;
   controls.autoForward = false;
@@ -127,6 +135,6 @@ function addLines(scene, points, color) {
 }
 
 function animation(time) {
-  controls.update(0.01)
+  controls.update(0.01);
   renderer.render(scene, camera);
 }
