@@ -1,8 +1,7 @@
 const { atan2, PI } = Math;
-import { Vector } from "./chturtle";
-import { Quaternion } from "three";
+import { Vector } from "./CHturtle";
 import * as leaf_geom from "./leaf_shapes";
-import { angleQuart } from "./parametric/vector-algebra";
+import { angleQuart, vectorDeclination } from "./math";
 
 /* Leaf module shared by L-System and Parametric tree generators */
 export class Leaf {
@@ -13,7 +12,7 @@ export class Leaf {
     this.direction = direction;
     this.right = right;
   }
-  
+
   static get_shape(leaf_type, g_scale, scale, scale_x) {
     /* returns the base leaf shape mesh */
     var faces, shape, u_v, verts;
@@ -41,7 +40,7 @@ export class Leaf {
     });
     return [verts, faces, u_v];
   }
-  
+
   get_mesh(bend, base_shape, index) {
     /* produce leaf mesh at position of this leaf given base mesh as input */
     var bend_trf_1,
@@ -56,7 +55,7 @@ export class Leaf {
 
     // calculate angles to transform mesh to align with desired direction
     trf = this.direction.to_track_quat("Z", "Y");
-    right_t = this.right.rotated(trf.clone().invert());
+    right_t = this.right.clone().applyQuaternion(trf.clone().invert());
     spin_ang = Math.PI - right_t.angleTo(new Vector([1, 0, 0]));
     spin_ang_quat = angleQuart(new Vector(0, 0, 1), spin_ang);
 
@@ -66,7 +65,6 @@ export class Leaf {
     } else {
       bend_trf_1 = null;
     }
-
 
     vertices = [];
     for (
@@ -128,9 +126,9 @@ export class Leaf {
     this.direction.applyQuaternion(bend_trf_1);
     this.right.applyQuaternion(bend_trf_1);
     normal = this.direction.clone().cross(this.right);
-    phi_bend = normal.declination();
+    phi_bend = vectorDeclination(normal);
     if (phi_bend > Math.PI / 2) {
-      phi_bend = phi_bend -  Math.PI;
+      phi_bend = phi_bend - Math.PI;
     }
     bend_trf_2 = angleQuart(this.right, phi_bend * bend);
     return [bend_trf_1, bend_trf_2];

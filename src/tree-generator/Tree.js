@@ -1,29 +1,9 @@
+const time = { time: () => new Date().getTime() };
+import { CurveObject } from "./CurveObject";
+
 const copy = (obj) => JSON.parse(JSON.stringify(obj));
 const { ceil, abs, cos, PI: pi, pow, sin, sqrt, tan, max, min } = Math;
-const degrees = function radians_to_degrees(input_radians) {
-  return input_radians * (180 / Math.PI);
-};
-const radians = function degrees_to_radians(input_degrees) {
-  return input_degrees * (Math.PI / 180);
-};
-const time = { time: () => new Date().getTime() };
-const random = { seed: () => null };
-const random_random = () => Math.random();
-const random_uniform = (min, max) => {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-};
-const random_getstate = () => 1;
-const random_setstate = (s) => null;
-import { Quaternion } from "three";
 
-import {
-  make_branch_pos_turtle,
-  make_branch_dir_turtle,
-  apply_tropism,
-} from "./utils";
-import * as utilities from "../rendering-utils";
 import {
   calc_point_on_bezier,
   calc_tangent_to_bezier,
@@ -31,139 +11,33 @@ import {
   point_in_cube,
   scale_bezier_handles_for_flare,
   angleQuart,
-} from "./vector-algebra";
-import { CHTurtle, Vector } from "../chturtle";
-import { Leaf } from "../leaf";
-import { TreeParam } from "./tree_params/tree_param";
-export const update_log = utilities.get_logger(true); // TODO: CONFIG!
-/*  Parametric tree generation system for Blender based on the paper by Weber and Penn  */
+  vectorDeclination,
+  radians,
+} from "./math";
+import {
+  CHTurtle,
+  make_branch_dir_turtle,
+  make_branch_pos_turtle,
+  Vector,
+} from "./CHturtle";
+import { Leaf } from "./Leaf";
+import { Stem } from "./Stem";
+import {
+  random_getstate,
+  random_random,
+  random_setstate,
+  random_uniform,
+  rand_in_range,
+} from "../random";
+import {
+  BranchMode,
+  BRANCH_MODE_ALT_OPP,
+  BRANCH_MODE_FAN,
+  BRANCH_MODE_WHORLED,
+} from "./BranchMode";
+import logger from "../logger";
 
-function rand_in_range(lower, upper) {
-  /* Generate random number between lower and upper */
-  return random_random() * (upper - lower) + lower;
-}
-
-class BranchMode {
-  /* Enum to refer to branching modes */
-  static alt_opp = 1;
-  static whorled = 2;
-  static fan = 3;
-}
-class BezierPoint {
-  //Coordinates of the control point vector3
-  co;
-
-  // Coordinates of the first handle vector3
-  handle_left;
-
-  // Handle types
-  // enum in [‘FREE’, ‘VECTOR’, ‘ALIGNED’, ‘AUTO’], default ‘FREE’
-  handle_left_type = "FREE";
-
-  // Coordinates of the second handle vector3
-  handle_right;
-
-  // Handle types
-  // enum in [‘FREE’, ‘VECTOR’, ‘ALIGNED’, ‘AUTO’], default ‘FREE’
-  handle_right_type = "FREE";
-
-  // Radius for beveling (float)
-  radius = 0;
-}
-class Spline {
-  type;
-  bezier_points = new Proxy([new BezierPoint()], {
-    get(target, prop) {
-      if (!isNaN(prop)) {
-        prop = parseInt(prop, 10);
-        if (prop < 0) {
-          prop += target.length;
-        }
-      }
-      return target[prop];
-    },
-  });
-  constructor(type, parent) {
-    this.type = type;
-    this.parent = parent;
-    this.bezier_points.add = (numPoints) => {
-      for (let index = 0; index < numPoints; index++) {
-        this.bezier_points.push(new BezierPoint());
-      }
-    };
-  }
-}
-class LevelObjectSplines {
-  children = [];
-  constructor(parent) {
-    this.parent = parent;
-  }
-
-  makeNew(type) {
-    const newSpline = new Spline(type, this);
-    this.children.push(newSpline);
-    return newSpline;
-  }
-}
-class CurveObject {
-  type = "CURVE";
-  name = "";
-
-  constructor(name, children) {
-    this.name = name;
-    this.splines = new LevelObjectSplines(this);
-  }
-}
-
-class Stem {
-  /*Class to store data for each stem (branch) in the system, primarily to
-    be accessed by its children in calculating their own parameters*/
-
-  name;
-  depth;
-  curve;
-  parent;
-  offset;
-  radius_limit;
-  children;
-  length;
-  radius;
-  length_child_max;
-
-  constructor(depth, curve, parent = null, offset = 0, radius_limit = -1) {
-    /* Init with at depth with curve, possibly parent and offset (for depth > 0) */
-    this.depth = depth;
-    this.curve = curve;
-    this.parent = parent;
-    this.offset = offset;
-    this.radius_limit = radius_limit;
-    this.children = [];
-    this.length = 0;
-    this.radius = 0;
-    this.length_child_max = 0;
-  }
-  copy() {
-    /* Copy method for stems */
-    var new_stem;
-    new_stem = new Stem(
-      this.depth,
-      this.curve,
-      this.parent,
-      this.offset,
-      this.radius_limit
-    );
-    new_stem.name = this.name + " copy";
-    new_stem.length = this.length;
-    new_stem.radius = this.radius;
-    new_stem.length_child_max = this.length_child_max;
-    return new_stem;
-  }
-  toString() {
-    return `${this.length} ${this.offset}  ${this.radius}`;
-  }
-}
-
-class Tree {
+export class Tree {
   /* Class to store data for the tree */
   param;
   generate_leaves;
@@ -192,7 +66,9 @@ class Tree {
     if (!generate_leaves) {
       this.param.leaf_blos_num = 0;
     }
+    this.make();
   }
+
   make() {
     /* make the tree */
     this.create_branches();
@@ -242,7 +118,7 @@ class Tree {
   create_branches() {
     /* Create branches for tree */
     let b_time, curve_points, point, points, start_time, turtle;
-    update_log("\nMaking Stems\n");
+    logger.info("Making Stems");
     start_time = time.time();
     const enumeratedLevels = ["Trunk"];
     for (let index = 1; index < this.param.levels; index++) {
@@ -251,7 +127,7 @@ class Tree {
 
     // Create empy levels (Trunk, Branches1, Branches2, ...)
     enumeratedLevels.forEach((level_name, level_depth) => {
-      update_log(`\nMaking level ${level_name}\n`);
+      logger.info(`Making level ${level_name}`);
       const level_curve = new CurveObject(level_name.toLowerCase());
       level_curve.dimensions = "3D";
       level_curve.resolution_u = this.param.curve_res[level_depth];
@@ -296,15 +172,15 @@ class Tree {
     }
 
     b_time = time.time() - start_time;
-    update_log(`\nStems made: ${this.stem_index} in ${b_time} seconds\n`);
-    curve_points = 0;
+    logger.info(`Stems made: ${this.stem_index} in ${b_time} seconds`);
+    /*curve_points = 0;
     this.branch_curves.forEach((branchCurve) => {
       branchCurve.splines.children.forEach((spline) => {
         curve_points += spline.bezier_points.length;
       });
     });
 
-    update_log(`Curve points: ${curve_points}\n`);
+    logger.info(`Curve points: ${curve_points}`);*/
     return b_time;
   }
   create_leaf_mesh() {
@@ -333,7 +209,7 @@ class Tree {
     if (this.leaves_array.length <= 0) {
       return;
     }
-    update_log("\nMaking Leaves\n");
+    logger.info("Making Leaves");
     start_time = time.time();
     //windman = bpy.context.window_manager;
     //windman.progress_begin(0, this.leaves_array.length);
@@ -364,7 +240,7 @@ class Tree {
       leaf = _pj_a[_pj_c];
       if (counter % 500 === 0) {
         //windman.progress_update((counter / 100));
-        update_log(
+        logger.info(
           `\r-> ${leaf_index} leaves made, ${blossom_index} blossoms made`
         );
       }
@@ -398,36 +274,35 @@ class Tree {
       //bpy.context.collection.objects.link(leaves_obj);
       //leaves_obj.parent = this.tree_obj;
 
-      
       this.leafMeshes = {
         verts: leaf_verts,
-        faces: leaf_faces
-      }
+        faces: leaf_faces,
+      };
       /*console.warn("Skipping leaf UV stuff");
-      leaf_uv = base_leaf_shape[2];
-      if (leaf_uv) {
-        new leaves.uv_layers.COMPAT_new({ name: "leavesUV" });
-        uv_layer = leaves.uv_layers.active.data;
-        for (
-          var seg_ind = 0,
-            _pj_a = Number.parseInt(
-              leaf_faces.length / base_leaf_shape[1].length
-            );
-          seg_ind < _pj_a;
-          seg_ind += 1
-        ) {
-          vert_ind = 0;
+        leaf_uv = base_leaf_shape[2];
+        if (leaf_uv) {
+          new leaves.uv_layers.COMPAT_new({ name: "leavesUV" });
+          uv_layer = leaves.uv_layers.active.data;
           for (
-            var vert, _pj_d = 0, _pj_b = leaf_uv, _pj_c = _pj_b.length;
-            _pj_d < _pj_c;
-            _pj_d += 1
+            var seg_ind = 0,
+              _pj_a = Number.parseInt(
+                leaf_faces.length / base_leaf_shape[1].length
+              );
+            seg_ind < _pj_a;
+            seg_ind += 1
           ) {
-            vert = _pj_b[_pj_d];
-            uv_layer[seg_ind * len(leaf_uv) + vert_ind].uv = vert;
-            vert_ind += 1;
+            vert_ind = 0;
+            for (
+              var vert, _pj_d = 0, _pj_b = leaf_uv, _pj_c = _pj_b.length;
+              _pj_d < _pj_c;
+              _pj_d += 1
+            ) {
+              vert = _pj_b[_pj_d];
+              uv_layer[seg_ind * len(leaf_uv) + vert_ind].uv = vert;
+              vert_ind += 1;
+            }
           }
-        }
-      }*/
+        }*/
     }
     if (blossom_index > 0) {
       //blossom = new bpy.data.meshes.COMPAT_new("blossom");
@@ -437,8 +312,8 @@ class Tree {
       blossom.from_pydata(blossom_verts, [], blossom_faces);
     }
     l_time = time.time() - start_time;
-    update_log(
-      `\nMade ${leaf_index} leaves and ${blossom_index} blossoms in ${l_time} seconds\n`
+    logger.info(
+      `Made ${leaf_index} leaves and ${blossom_index} blossoms in ${l_time} seconds`
     );
     //windman.progress_end();
   }
@@ -464,7 +339,7 @@ class Tree {
     cloned_turtle = null
   ) {
     /*Generate stem given parameters, as well as all children (branches, splits and leaves) via
-        recursion*/
+          recursion*/
 
     var base_seg_ind,
       num_of_splits,
@@ -486,6 +361,7 @@ class Tree {
       hel_pitch,
       hel_radius,
       in_pruning_envelope,
+      is_base_split,
       leaf_count,
       leaf_num_error,
       leaves_on_seg,
@@ -501,14 +377,18 @@ class Tree {
       seg_splits,
       split_err_state,
       start_length,
-      tan_ang;
+      tan_ang,
+      using_direct_split,
+      declination,
+      spl_angle,
+      spr_angle;
 
     // if the stem is so thin as to be invisible then don't bother to make it
     if (0 <= stem.radius_limit && stem.radius_limit < 0.0001) {
       return;
     }
     if (this.stem_index % 100 === 0) {
-      update_log(`\r-> ${this.stem_index} stems made`);
+      logger.info(`\r-> ${this.stem_index} stems made`);
     }
 
     // use level 3 parameters for any depth greater than this
@@ -687,14 +567,11 @@ class Tree {
               .sub(new_point.handle_left);
           } else {
             prev_point = stem.curve.bezier_points[-2];
-            new_point.co = hel_p_2
-              .clone()
-              .rotate(angleQuart(hel_axis, (seg_ind - 1) * pi));
+            new_point.co = hel_p_2.clone();
+            applyQuaternion(angleQuart(hel_axis, (seg_ind - 1) * pi));
             new_point.co.add(prev_point.co);
-            dif_p = hel_p_2
-              .clone()
-              .sub(hel_p_1)
-              .rotate(angleQuart(hel_axis, (seg_ind - 1) * pi));
+            dif_p = hel_p_2.clone().sub(hel_p_1);
+            applyQuaternion(angleQuart(hel_axis, (seg_ind - 1) * pi));
             new_point.handle_left = new_point.co.clone().sub(dif_p);
             new_point.handle_right = new_point.co
               .clone()
@@ -856,7 +733,7 @@ class Tree {
               spl_angle = 0;
               split_corr_angle = 0;
             } else {
-              declination = turtle.dir.declination();
+              declination = vectorDeclination(turtle.dir);
               spl_angle =
                 this.param.split_angle[depth] +
                 random_uniform(-1, 1) * this.param.split_angle_v[depth] -
@@ -888,11 +765,11 @@ class Tree {
               if (using_direct_split) {
                 turtle.turn_right(spr_angle / 2);
               } else {
-                turtle.dir.rotate(
+                turtle.dir.applyQuaternion(
                   angleQuart(new Vector(0, 0, 1), radians(-spr_angle / 2))
                 );
                 turtle.dir.normalize();
-                turtle.right.rotate(
+                turtle.right.applyQuaternion(
                   angleQuart(new Vector(0, 0, 1), radians(-spr_angle / 2))
                 );
                 turtle.right.normalize();
@@ -997,7 +874,7 @@ class Tree {
           if (seg_ind === 1) {
             turtle.pos = hel_p_2 + pos;
           } else {
-            hel_p_2.rotate(angleQuart(hel_axis, (seg_ind - 1) * pi));
+            hel_p_2applyQuaternion(angleQuart(hel_axis, (seg_ind - 1) * pi));
             turtle.pos = hel_p_2 + previous_helix_point;
           }
         }
@@ -1070,11 +947,11 @@ class Tree {
               if (using_direct_split) {
                 turtle.turn_left(spr_angle / 2);
               } else {
-                turtle.dir.rotate(
+                turtle.dir.applyQuaternion(
                   angleQuart(new Vector(0, 0, 1), radians(-spr_angle / 2))
                 );
                 turtle.dir.normalize();
-                turtle.right.rotate(
+                turtle.right.applyQuaternion(
                   angleQuart(new Vector(0, 0, 1), radians(-spr_angle / 2))
                 );
                 turtle.right.normalize();
@@ -1118,6 +995,7 @@ class Tree {
       n_turtle,
       new_stem,
       quat,
+      split_stem,
       stem_depth,
       using_direct_split;
     using_direct_split = this.param.split_angle[stem.depth] < 0;
@@ -1147,12 +1025,12 @@ class Tree {
         n_turtle.turn_left(eff_spr_angle);
       } else {
         quat = angleQuart(new Vector(0, 0, 1), radians(eff_spr_angle));
-        n_turtle.dir.rotate(quat);
+        n_turtle.dir.applyQuaternion(quat);
         turtle.dir.normalize();
-        n_turtle.right.rotate(quat);
+        n_turtle.right.applyQuaternion(quat);
         turtle.right.normalize();
       }
-      split_stem = self.branch_curves[stem.depth].splines.COMPAT_new("BEZIER");
+      split_stem = this.branch_curves[stem.depth].splines.makeNew("BEZIER");
       split_stem.resolution_u = stem.curve.resolution_u;
       split_stem.radius_interpolation = "CARDINAL";
       new_stem = stem.copy();
@@ -1212,7 +1090,7 @@ class Tree {
           this.set_up_branch(
             turtle,
             stem,
-            BranchMode.fan,
+            BRANCH_MODE_FAN,
             1,
             start_point,
             end_point,
@@ -1252,7 +1130,7 @@ class Tree {
                 this.set_up_branch(
                   turtle,
                   stem,
-                  BranchMode.whorled,
+                  BRANCH_MODE_WHORLED,
                   offset,
                   start_point,
                   end_point,
@@ -1287,7 +1165,7 @@ class Tree {
               this.set_up_branch(
                 turtle,
                 stem,
-                BranchMode.alt_opp,
+                BRANCH_MODE_ALT_OPP,
                 offset,
                 start_point,
                 end_point,
@@ -1317,18 +1195,6 @@ class Tree {
         new_spline.radius_interpolation = "CARDINAL";
         const new_stem = new Stem(d_plus_1, new_spline, stem, b_offset, rad);
         new_stem.name = "depth " + d_plus_1 + " stem, branch nr " + branchIdx;
-        //console.log("Creating new empty stem", new_stem.name);
-        //self.make_stem(dir_tur, Stem(d_plus_1, new_spline, stem, b_offset, rad), pos_corr_turtle=pos_tur)
-        /*
-         turtle,
-            stem,
-            start = 0,
-            split_corr_angle = 0,
-            num_branches_factor = 1,
-            clone_prob = 1,
-            pos_corr_turtle = null,
-            cloned_turtle = null
-            */
         this.make_stem(dir_tur, new_stem, 0, 0, 1, 1, pos_tur);
       });
     }
@@ -1357,7 +1223,7 @@ class Tree {
     branches_in_group = 0
   ) {
     /*Set up a new branch, creating the new direction and position turtle and orienting them
-        correctly and adding the required info to the list of branches to be made*/
+          correctly and adding the required info to the list of branches to be made*/
     var branch_dir_turtle,
       branch_pos_turtle,
       d_angle,
@@ -1373,7 +1239,7 @@ class Tree {
       start_point,
       end_point
     );
-    if (branch_mode === BranchMode.fan) {
+    if (branch_mode === BRANCH_MODE_FAN) {
       if (branches_in_group === 1) {
         t_angle = 0;
       } else {
@@ -1385,7 +1251,7 @@ class Tree {
       branch_dir_turtle.turn_right(t_angle);
       radius_limit = 0;
     } else {
-      if (branch_mode === BranchMode.whorled) {
+      if (branch_mode === BRANCH_MODE_WHORLED) {
         r_angle =
           prev_rot_ang[0] +
           (360 * branch_ind) / branches_in_group +
@@ -1745,14 +1611,14 @@ class Tree {
   }
 }
 
-export function construct(params, seed = 0, generate_leaves = true) {
-  /* Construct the tree */
-  if (seed === 0) {
-    seed = Number.parseInt(random_random() * 9999999);
-  }
-  update_log(`\nUsing seed: ${seed}\n`);
-  random.seed(seed);
-  const t = new Tree(new TreeParam(params), generate_leaves);
-  t.make();
-  return t;
+/* Apply tropism_vector to turtle direction */
+export function apply_tropism(turtle, tropism_vector) {
+  const h_cross_t = turtle.dir.clone().cross(tropism_vector);
+  const alpha = 10 * h_cross_t.length();
+  if (alpha === 0) return;
+  h_cross_t.normalize();
+  turtle.dir.applyQuaternion(angleQuart(h_cross_t, radians(alpha)));
+  turtle.dir.normalize();
+  turtle.right.applyQuaternion(angleQuart(h_cross_t, radians(alpha)));
+  turtle.right.normalize();
 }

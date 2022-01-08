@@ -31,6 +31,7 @@
     "@babel/core": "^7.16.7",
     "@babel/plugin-transform-runtime": "^7.16.7",
     "@babel/preset-env": "^7.16.7",
+    "@math.gl/core": "^3.5.6",
     "babel-loader": "^8.2.3",
     "glslify-loader": "^2.0.0",
     "python-js": "^0.9.8",

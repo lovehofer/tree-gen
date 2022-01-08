@@ -1,20 +1,10 @@
-//import {atan2, degrees, radians, sqrt} from 'math';
-const { atan2, sqrt } = Math;
-const degrees = function radians_to_degrees(input_radians) {
-  return input_radians * (180 / Math.PI);
-};
-const radians = function degrees_to_radians(input_degrees) {
-  return input_degrees * (Math.PI / 180);
-};
-
-//import {random as random_random} from 'random';
-const random_random = () => Math.random();
-
-//import * as mathutils from 'mathutils';
-import { Vector3 } from "three";
-//import {Quaternion} from 'mathutils';
-import { Quaternion } from "three";
-import { angleQuart } from "./parametric/vector-algebra";
+import { Vector3, Quaternion } from "three";
+import {
+  angleQuart,
+  calc_point_on_bezier,
+  calc_tangent_to_bezier,
+  radians,
+} from "./math";
 
 /*3D Turtle implementation for use in tree generation module, also extends
 Blender Vector class with some useful methods*/
@@ -32,9 +22,9 @@ export class Vector extends Vector3 {
       super(x, y, z);
     }
   }
-  /* Extension of the standard Vector class with some useful methods */
-  random() {
-    /* Normalised vector containing random entries in all dimensions */
+  // Extension of the standard Vector class with some useful methods
+  /*random() {
+    // Normalised vector containing random entries in all dimensions 
     var vec;
     vec = new Vector([random_random(), random_random(), random_random()]);
     vec.normalize();
@@ -48,11 +38,11 @@ export class Vector extends Vector3 {
     return vec;
   }
   declination() {
-    /* Calculate declination of vector in degrees */
+    // Calculate declination of vector in degrees 
     return degrees(
       atan2(sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2)), this.z)
     );
-  }
+  }*/
 
   // Blender vector methods
   to_track_quat(track, up) {
@@ -60,7 +50,6 @@ export class Vector extends Vector3 {
     return new Quaternion().setFromUnitVectors(
       new Vector3(0, 0, 1).normalize(),
       this.clone().normalize()
-      
     );
   }
 }
@@ -178,4 +167,53 @@ export class CHTurtle {
     this.width = width;
   }
 }
-//_pj.set_properties(CHTurtle, { __slots__: ["dir", "pos", "right", "width"] });
+
+/*Create and setup the turtle for the position of a new branch, also returning the radius
+    of the parent to use as a limit for the child*/
+export function make_branch_pos_turtle(
+  dir_turtle,
+  offset,
+  start_point,
+  end_point,
+  radius_limit
+) {
+  var branch_pos_turtle;
+  dir_turtle.pos = calc_point_on_bezier(offset, start_point, end_point);
+  branch_pos_turtle = new CHTurtle(dir_turtle);
+  branch_pos_turtle.pitch_down(90);
+  branch_pos_turtle.move(radius_limit);
+  return branch_pos_turtle;
+}
+
+/* Create and setup the turtle for the direction of a new branch */
+export function make_branch_dir_turtle(
+  turtle,
+  helix,
+  offset,
+  start_point,
+  end_point
+) {
+  var branch_dir_turtle, tan_d, tangent;
+  branch_dir_turtle = new CHTurtle();
+  tangent = calc_tangent_to_bezier(offset, start_point, end_point);
+
+  tangent.normalize();
+  if (tangent.length() === 0) {
+    debugger;
+  }
+  branch_dir_turtle.dir = tangent;
+  if (helix) {
+    tan_d = calc_tangent_to_bezier(
+      offset + 0.0001,
+      start_point,
+      end_point
+    ).normalize();
+    branch_dir_turtle.right = branch_dir_turtle.dir.clone().cross(tan_d);
+  } else {
+    branch_dir_turtle.right = turtle.dir
+      .clone()
+      .cross(turtle.right)
+      .cross(branch_dir_turtle.dir);
+  }
+  return branch_dir_turtle;
+}

@@ -32,5 +32,3 @@ export default {
   leaf_scale_x: 0.5,
   leaf_bend: 0,
 };
-
-//# sourceMappingURL=balsam_fir.js.map

@@ -1,20 +1,12 @@
 # Another Green World
+
 ## TODO
 
-improve Random
-dont use three.js vectors and quarts. It's better if I can separate math, data  and rendering I think.
+- improve Random
+- https://math.gl/modules/core/docs/developer-guide/performance
 
-### Compatiabilty hacks
-Look for 
-`originalStatement`
-`COMPAT_`
+## Performance
 
-### v1
-- Get data from Python
-- Render data from Python
-
-### v2
-- Camera controller
-
-### v3
-- Better Rendering?
+- Leaf.js get_mesh 100% of time in leaf creation
+- Vector contructor 50% of time in branch creation
+- CHTurtle Constructor also lots?

@@ -1,5 +1,5 @@
 /* Pre-defined geometries for leaf and blossom meshes */
-import { Vector } from "./chturtle";
+import { Vector } from "./CHturtle";
 const leaf_data = [
   [
     [
