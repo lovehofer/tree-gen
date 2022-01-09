@@ -5,7 +5,7 @@ import {
   AmbientLight,
   DirectionalLight,
 } from "three";
-import { FlyControls } from "three/examples/jsm/controls/FlyControls";
+import { Controlls } from "./Controlls";
 
 export class TreeScene {
   camera;
@@ -17,7 +17,7 @@ export class TreeScene {
     this.setupScene();
     this.setupLighting();
     this.setupRenderer(rendererDomElement);
-    this.setupControls();
+    this.setupControls(rendererDomElement);
   }
 
   setupCamera() {
@@ -33,8 +33,13 @@ export class TreeScene {
   }
 
   setupLighting() {
-    this.scene.add(new AmbientLight(0xbbbbbb, 0.6));
-    this.scene.add(new DirectionalLight(0xffffff, 0.6));
+    //this.scene.add(new AmbientLight(0xbbbbbb, 0.6));
+    const directionalLight1 = new DirectionalLight(0x00ff00, 1);
+    const directionalLight2 = new DirectionalLight(0xff0000, 1);
+    directionalLight1.position.set(0, 1, 0);
+    directionalLight2.position.set(0, -1, 0);
+    this.scene.add(directionalLight1);
+    this.scene.add(directionalLight2);
   }
 
   setupRenderer(rendererDomElement) {
@@ -48,10 +53,14 @@ export class TreeScene {
     rendererDomElement.appendChild(this.renderer.domElement);
   }
 
-  setupControls() {
-    this.controls = new FlyControls(this.camera, this.renderer.domElement);
+  setupControls(rendererDomElement) {
+    this.controls = new Controlls(this.camera, this.renderer.domElement);
+
+    rendererDomElement.addEventListener("click", () => {
+      this.controls.lock();
+    });
     this.controls.movementSpeed = 10;
-    this.controls.rollSpeed = Math.PI / 5;
+    this.controls.lookSpeed = 0.5;
     this.controls.autoForward = false;
     this.controls.dragToLook = true;
   }

@@ -6,9 +6,9 @@ import { TreeParam } from "./tree-params/tree_param";
 import { Tree } from "./tree-generator/Tree";
 
 //import params from "./tree-params/balsam_fir";
-import params from "./tree-params/quaking_aspen";
+//import params from "./tree-params/quaking_aspen";
 //import params from "./tree-params/palm";
-//import params from "./tree-params/acer";
+import params from "./tree-params/acer";
 logger.info(params);
 
 // Seed for random state (not implemented)

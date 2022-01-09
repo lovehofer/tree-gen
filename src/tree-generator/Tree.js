@@ -264,6 +264,8 @@ export class Tree {
         );
         leaf_verts.push(...verts);
         leaf_faces.push(...faces);
+        //leaf_verts.push(...verts);
+        //leaf_faces.push(...faces);
         leaf_index += 1;
       }
       counter += 1;
@@ -568,10 +570,10 @@ export class Tree {
           } else {
             prev_point = stem.curve.bezier_points[-2];
             new_point.co = hel_p_2.clone();
-            applyQuaternion(angleQuart(hel_axis, (seg_ind - 1) * pi));
+            transformByQuaternion(angleQuart(hel_axis, (seg_ind - 1) * pi));
             new_point.co.add(prev_point.co);
             dif_p = hel_p_2.clone().sub(hel_p_1);
-            applyQuaternion(angleQuart(hel_axis, (seg_ind - 1) * pi));
+            transformByQuaternion(angleQuart(hel_axis, (seg_ind - 1) * pi));
             new_point.handle_left = new_point.co.clone().sub(dif_p);
             new_point.handle_right = new_point.co
               .clone()
@@ -765,11 +767,11 @@ export class Tree {
               if (using_direct_split) {
                 turtle.turn_right(spr_angle / 2);
               } else {
-                turtle.dir.applyQuaternion(
+                turtle.dir.transformByQuaternion(
                   angleQuart(new Vector(0, 0, 1), radians(-spr_angle / 2))
                 );
                 turtle.dir.normalize();
-                turtle.right.applyQuaternion(
+                turtle.right.transformByQuaternion(
                   angleQuart(new Vector(0, 0, 1), radians(-spr_angle / 2))
                 );
                 turtle.right.normalize();
@@ -874,7 +876,9 @@ export class Tree {
           if (seg_ind === 1) {
             turtle.pos = hel_p_2 + pos;
           } else {
-            hel_p_2applyQuaternion(angleQuart(hel_axis, (seg_ind - 1) * pi));
+            hel_p_2transformByQuaternion(
+              angleQuart(hel_axis, (seg_ind - 1) * pi)
+            );
             turtle.pos = hel_p_2 + previous_helix_point;
           }
         }
@@ -947,11 +951,11 @@ export class Tree {
               if (using_direct_split) {
                 turtle.turn_left(spr_angle / 2);
               } else {
-                turtle.dir.applyQuaternion(
+                turtle.dir.transformByQuaternion(
                   angleQuart(new Vector(0, 0, 1), radians(-spr_angle / 2))
                 );
                 turtle.dir.normalize();
-                turtle.right.applyQuaternion(
+                turtle.right.transformByQuaternion(
                   angleQuart(new Vector(0, 0, 1), radians(-spr_angle / 2))
                 );
                 turtle.right.normalize();
@@ -1025,9 +1029,9 @@ export class Tree {
         n_turtle.turn_left(eff_spr_angle);
       } else {
         quat = angleQuart(new Vector(0, 0, 1), radians(eff_spr_angle));
-        n_turtle.dir.applyQuaternion(quat);
+        n_turtle.dir.transformByQuaternion(quat);
         turtle.dir.normalize();
-        n_turtle.right.applyQuaternion(quat);
+        n_turtle.right.transformByQuaternion(quat);
         turtle.right.normalize();
       }
       split_stem = this.branch_curves[stem.depth].splines.makeNew("BEZIER");
@@ -1580,7 +1584,7 @@ export class Tree {
           dir_vec_mag = end_point.handle_left
             .clone()
             .sub(end_point.co)
-            .length();
+            .magnitude();
           //curr_point.handle_left = (curr_point.co - (tangent * dir_vec_mag));
           curr_point.handle_left = curr_point.co
             .clone()
@@ -1614,11 +1618,11 @@ export class Tree {
 /* Apply tropism_vector to turtle direction */
 export function apply_tropism(turtle, tropism_vector) {
   const h_cross_t = turtle.dir.clone().cross(tropism_vector);
-  const alpha = 10 * h_cross_t.length();
+  const alpha = 10 * h_cross_t.magnitude();
   if (alpha === 0) return;
   h_cross_t.normalize();
-  turtle.dir.applyQuaternion(angleQuart(h_cross_t, radians(alpha)));
+  turtle.dir.transformByQuaternion(angleQuart(h_cross_t, radians(alpha)));
   turtle.dir.normalize();
-  turtle.right.applyQuaternion(angleQuart(h_cross_t, radians(alpha)));
+  turtle.right.transformByQuaternion(angleQuart(h_cross_t, radians(alpha)));
   turtle.right.normalize();
 }

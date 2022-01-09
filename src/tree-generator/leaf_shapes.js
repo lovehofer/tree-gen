@@ -303,8 +303,6 @@ leaf_data.forEach((leafTypeData) => {
   });
 });
 
-console.log(leaf_data);
-
 export function leaves(t) {
   return leaf_data[t];
 }

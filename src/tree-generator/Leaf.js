@@ -55,7 +55,7 @@ export class Leaf {
 
     // calculate angles to transform mesh to align with desired direction
     trf = this.direction.to_track_quat("Z", "Y");
-    right_t = this.right.clone().applyQuaternion(trf.clone().invert());
+    right_t = this.right.clone().transformByQuaternion(trf.clone().invert());
     spin_ang = Math.PI - right_t.angleTo(new Vector([1, 0, 0]));
     spin_ang_quat = angleQuart(new Vector(0, 0, 1), spin_ang);
 
@@ -75,12 +75,12 @@ export class Leaf {
       // rotate to correct direction
       vertex = _pj_a[_pj_c];
       n_vertex = vertex.clone();
-      n_vertex.applyQuaternion(spin_ang_quat);
-      n_vertex.applyQuaternion(trf);
+      n_vertex.transformByQuaternion(spin_ang_quat);
+      n_vertex.transformByQuaternion(trf);
 
       // apply bend if needed
       if (bend > 0) {
-        n_vertex.applyQuaternion(bend_trf_1);
+        n_vertex.transformByQuaternion(bend_trf_1);
       }
 
       // move to right position
@@ -123,8 +123,8 @@ export class Leaf {
     theta_pos = atan2(this.position.y, this.position.x);
     theta_bend = theta_pos - atan2(normal.y, normal.x);
     bend_trf_1 = angleQuart(new Vector(0, 0, 1), theta_bend * bend);
-    this.direction.applyQuaternion(bend_trf_1);
-    this.right.applyQuaternion(bend_trf_1);
+    this.direction.transformByQuaternion(bend_trf_1);
+    this.right.transformByQuaternion(bend_trf_1);
     normal = this.direction.clone().cross(this.right);
     phi_bend = vectorDeclination(normal);
     if (phi_bend > Math.PI / 2) {

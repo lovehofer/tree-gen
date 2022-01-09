@@ -1,4 +1,4 @@
-import { Quaternion } from "three";
+import { Quaternion } from "@math.gl/core";
 import { Vector } from "./CHturtle";
 const { atan2, sqrt } = Math;
 
@@ -123,4 +123,46 @@ export function scale_bezier_handles_for_flare(stem, max_points_per_seg) {
       .divideScalar(max_points_per_seg);
     point.handle_right = rightPartial.add(point.co);
   });
+}
+
+// https://github.com/mrdoob/three.js/blob/dev/src/math/Quaternion.js#L363
+// http://lolengine.net/blog/2013/09/18/beautiful-maths-quaternion-from-vectors
+export function quatFromUnitVectors(vFrom, vTo) {
+  // assumes direction vectors vFrom and vTo are normalized
+
+  let x, y, z, w;
+  let r = vFrom.dot(vTo) + 1;
+
+  if (r < Number.EPSILON) {
+    // vFrom and vTo point in opposite directions
+
+    r = 0;
+
+    if (Math.abs(vFrom.x) > Math.abs(vFrom.z)) {
+      x = -vFrom.y;
+      y = vFrom.x;
+      z = 0;
+      w = r;
+    } else {
+      x = 0;
+      y = -vFrom.z;
+      z = vFrom.y;
+      w = r;
+    }
+  } else {
+    // crossVectors( vFrom, vTo ); // inlined to avoid cyclic dependency on Vector3
+
+    x = vFrom.y * vTo.z - vFrom.z * vTo.y;
+    y = vFrom.z * vTo.x - vFrom.x * vTo.z;
+    z = vFrom.x * vTo.y - vFrom.y * vTo.x;
+    w = r;
+  }
+
+  const quat = new Quaternion(x, y, z, w);
+
+  return quat.normalize();
+}
+
+export function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
